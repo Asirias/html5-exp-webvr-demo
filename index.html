@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0, shrink-to-fit=no">
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>スマホVRサンプル</title>
+<style>
+body {
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    color: #fff;
+    margin: 0px;
+    padding: 0;
+    overflow: hidden;
+}
+</style>
+<script src="js/es6-promise.js"></script>
+<script src="js/three.min.js"></script>
+<script src="js/VRControls.js"></script>
+<script src="js/VREffect.js"></script>
+<script src="js/webvr-polyfill.js"></script>
+<script src="js/webvr-manager.js"></script>
+</head>
+
+<body>
+
+<script>
+// レンダラを生成
+var renderer = new THREE.WebGLRenderer({antialias: true});
+renderer.setPixelRatio(window.devicePixelRatio);
+
+document.body.appendChild(renderer.domElement);
+
+// シーンを生成
+var scene = new THREE.Scene();
+
+// カメラを生成
+var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+
+// VR用コントローラを生成
+var controls = new THREE.VRControls(camera);
+
+// VR用エフェクトを生成
+var effect = new THREE.VREffect(renderer);
+effect.setSize(window.innerWidth, window.innerHeight);
+
+// VRマネージャの生成
+var manager = new WebVRManager(renderer, effect);
+
+//////////////////////////////////////////////////
+// 各種オブジェクトのセットアップ
+
+// Skysphereの生成
+var skysphereLoader = new THREE.TextureLoader();
+skysphereLoader.load('img/bg_skyplane.png', onSkysphereTextureLoaded);
+function onSkysphereTextureLoaded(texture) {
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(4, 4);
+
+    var geometry = new THREE.SphereGeometry(5000, 128, 128);
+    // var geometry = new THREE.BoxGeometry(1000, 1000, 1000);
+    var material = new THREE.MeshBasicMaterial({
+        map: texture,
+        color: 0xffffff,
+        side: THREE.BackSide
+    });
+
+    var skysphere = new THREE.Mesh(geometry, material);
+    skysphere.position.z = 0;
+    scene.add(skysphere);
+}
+
+// 地球オブジェクトの生成
+var earth = new THREE.Object3D();
+var earthLoader = new THREE.TextureLoader();
+earthLoader.load('img/earth.jpg', onEarthTextureLoaded);
+function onEarthTextureLoaded(texture) {
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+
+    var geometry = new THREE.SphereGeometry(0.3, 32, 32);
+    var material = new THREE.MeshLambertMaterial({
+        map: texture,
+        color: 0xffffff
+    });
+
+    earth = new THREE.Mesh(geometry, material);
+    earth.position.z = -1;
+    scene.add(earth);
+}
+
+var light = new THREE.DirectionalLight(0xffffff);
+light.position.set(1, 1, 1);
+scene.add(light);
+
+//////////////////////////////////////////////////
+
+// アニメーションループ
+var lastRender = 0;
+function animate(timestamp) {
+    var delta = Math.min(timestamp - lastRender, 500);
+    lastRender = timestamp;
+
+    earth.rotation.x += delta * 0.000015;
+    earth.rotation.y += delta * 0.000025;
+
+    // VRコントローラのupdate
+    controls.update();
+
+    // VRマネージャを通してシーンをレンダリング
+    manager.render(scene, camera, timestamp);
+
+    // アニメーションループ
+    requestAnimationFrame(animate);
+}
+
+// アニメーションの開始
+animate(performance ? performance.now() : Date.now());
+
+</script>
+    
+</body>
+</html>
